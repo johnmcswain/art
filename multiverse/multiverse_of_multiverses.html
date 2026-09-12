@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Many Ways of Many Worlds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;1,400&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#14213D; --deep:#0F1830;
+    --bone:#E9E4D2; --bone-dim:rgba(233,228,210,.55); --bone-faint:rgba(233,228,210,.16);
+    --amber:#F2A65A; --verdigris:#7FB7BE; --rose:#D98C8C; --lavender:#B7A8E8; --sage:#A8D696;
+    --slate:#6B7396;
+    --display:'Cormorant', Georgia, 'Times New Roman', serif;
+    --body:'Figtree', system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--night);color:var(--bone);font-family:var(--body);font-size:15px;line-height:1.5;overflow:hidden}
+  #stage{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+  #stage.dragging{cursor:grabbing}
+
+  .title{position:fixed;left:28px;top:22px;z-index:3;pointer-events:none;max-width:360px}
+  .title h1{font-family:var(--display);font-weight:500;font-size:44px;line-height:1;letter-spacing:-.01em}
+  .title p{margin-top:10px;color:var(--bone-dim);font-size:14px;max-width:36ch}
+
+  .hand{position:fixed;left:28px;bottom:24px;z-index:3;width:300px;display:grid;gap:12px}
+  .hand h2,.ledger h2{font-family:var(--display);font-weight:500;font-size:22px;line-height:1.1}
+  .row{display:grid;grid-template-columns:96px 1fr 40px;align-items:center;gap:10px;font-size:13px}
+  .row span:last-child{color:var(--bone-dim);text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent}
+  input[type=range]:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:2px}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--bone-faint)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--bone-faint)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--bone);margin-top:-5.5px;border:none}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--bone);border:none}
+  .switch{display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;user-select:none}
+  .switch input{accent-color:var(--amber)}
+  .hint{font-size:12px;color:var(--slate)}
+  .legend{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font-size:12px;color:var(--bone-dim)}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle}
+
+  .ledger{position:fixed;right:28px;top:22px;bottom:24px;z-index:3;width:352px;display:flex;flex-direction:column;gap:14px;border-left:1px solid var(--bone-faint);padding-left:22px;overflow:auto}
+  .ledger .kind{font-size:13px;margin-top:2px}
+  .ledger .name{font-family:var(--display);font-size:36px;font-weight:500;line-height:1}
+  .ledger .name i{font-style:italic;color:var(--bone-dim);font-size:24px}
+  .ledger .coord{font-size:12px;color:var(--bone-dim);font-variant-numeric:tabular-nums;margin-top:6px}
+  .ledger .creed{font-family:var(--display);font-style:italic;font-size:17px;color:var(--bone-dim);margin-top:6px;line-height:1.3}
+  .ledger .status{font-size:13px;min-height:1.4em;color:var(--amber)}
+  .laws{display:grid;gap:8px}
+  .law{display:grid;grid-template-columns:1fr auto;gap:0 10px;font-size:13px}
+  .law b{font-weight:500}
+  .law em{font-style:normal;color:var(--bone-dim);grid-column:1/-1;font-size:12px}
+  .law input{grid-column:1/-1}
+  .law .val{color:var(--verdigris);font-variant-numeric:tabular-nums}
+  #sim{width:100%;aspect-ratio:1/1;border:1px solid var(--bone-faint);border-radius:2px;background:var(--deep);touch-action:none}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button,select{font:inherit;font-size:13px;font-weight:500;padding:8px 14px;border-radius:999px;cursor:pointer;background:transparent;color:var(--bone);border:1px solid var(--bone-dim)}
+  select{padding:7px 12px;background:var(--night)}
+  button:hover,select:hover{border-color:var(--bone)}
+  button:focus-visible,select:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  button.primary{background:var(--amber);color:var(--night);border-color:var(--amber)}
+  button.primary:hover{background:#F7B672}
+  button.danger{color:var(--rose);border-color:rgba(217,140,140,.5)}
+  button.danger:hover{border-color:var(--rose)}
+  .tally{margin-top:auto;font-size:12px;color:var(--slate);line-height:1.7}
+  .tally b{color:var(--bone-dim);font-weight:500}
+
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:4;padding:10px 18px;border-radius:999px;background:var(--bone);color:var(--night);font-size:13px;font-weight:500;opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.show{opacity:1}
+
+  @media (max-width:900px){
+    body{overflow:auto}
+    #stage{position:relative;height:60vh}
+    .title{position:absolute;left:16px;top:14px;max-width:70vw}
+    .title h1{font-size:30px}
+    .title p{display:none}
+    .hand{position:relative;left:0;bottom:0;width:auto;padding:16px}
+    .ledger{position:relative;right:0;top:0;bottom:0;width:auto;border-left:none;border-top:1px solid var(--bone-faint);padding:16px;overflow:visible}
+    #sim{max-width:300px}
+  }
+  @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+
+<canvas id="stage" aria-label="A tesseract. Each corner is a universe of a different kind. Drag to turn it through the fourth dimension."></canvas>
+
+<div class="title">
+  <h1>Many Ways<br>of Many Worlds</h1>
+  <p>One tesseract, six ideas of what a universe is. Some corners are colonies that outgrow themselves. Some are rules. Some are membranes, or minds, or a grid that never ends. Turn the hypercube and choose a corner.</p>
+</div>
+
+<section class="hand" aria-label="Controls">
+  <h2>Turn the hypercube</h2>
+  <div class="row"><span>X against W</span><input id="rxw" type="range" min="0" max="628" value="0"><span id="rxw-v">0°</span></div>
+  <div class="row"><span>Y against W</span><input id="ryw" type="range" min="0" max="628" value="0"><span id="ryw-v">0°</span></div>
+  <div class="row"><span>Z against W</span><input id="rzw" type="range" min="0" max="628" value="0"><span id="rzw-v">0°</span></div>
+  <div class="row"><span>Gaze along W</span><input id="wslice" type="range" min="-100" max="100" value="0"><span id="wslice-v">0.00</span></div>
+  <label class="switch"><input id="spin" type="checkbox"> Let it turn on its own</label>
+  <div class="legend" id="legend"></div>
+  <div class="hint">Drag the canvas to rotate. Hollow corners are worlds that have ended.</div>
+</section>
+
+<aside class="ledger" aria-live="polite" aria-label="The chosen world">
+  <div>
+    <h2>The chosen world</h2>
+    <div class="name" id="uname">Nothing yet</div>
+    <div class="kind" id="ukind"></div>
+    <div class="coord" id="ucoord">Choose a corner of the tesseract.</div>
+    <div class="creed" id="ucreed"></div>
+  </div>
+  <div class="status" id="ustatus"></div>
+  <div class="laws" id="laws"></div>
+  <canvas id="sim" width="300" height="300" aria-label="This world, running"></canvas>
+  <div class="acts">
+    <button class="primary" id="fork">Fork this world</button>
+    <select id="kindsel" aria-label="Kind of world to make"></select>
+    <button class="danger" id="unmake">Unmake</button>
+    <button id="restore" hidden>Begin again</button>
+  </div>
+  <div class="tally" id="tally"></div>
+</aside>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const mulberry = s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const S = 300;
+
+  // ---------- Six ideas of what a universe is ----------
+  // Each kind: laws it obeys, how it starts, how it runs, how it forks.
+  const KINDS = {
+    colony: {
+      title: 'A colony', color: [242, 166, 90], forkLabel: 'Fork this colony',
+      creed: 'Every world is a population. Given enough room and no predators, it grows until it cannot stand itself.',
+      laws: [
+        { key: 'capacity', name: 'Capacity', min: 40, max: 400, step: 10, from: p => 200 + p[0] * 120, fmt: v => Math.round(v) + ' mice', read: v => v < 120 ? 'A small pen' : v < 280 ? 'A generous pen' : 'A vast pen with no exits' },
+        { key: 'fertility', name: 'Fertility', min: .5, max: 4, step: .1, from: p => 2 + p[1] * 1.2, fmt: v => v.toFixed(1) + ' litters', read: v => v < 1.5 ? 'Slow to breed' : 'Breeds freely' },
+        { key: 'sink', name: 'Crowding tolerance', min: .3, max: 1, step: .05, from: p => .65 + p[2] * .25, fmt: v => Math.round(v * 100) + '% of capacity', read: v => v < .5 ? 'Breaks down early' : v < .8 ? 'Holds a while' : 'Endures nearly to the limit' },
+      ],
+      init(w) {
+        w.state = { N: 8, day: 0, sinkDays: 0, phase: 'Strive', peak: 8, hist: [], dots: [], rng: mulberry(w.id * 977 + 11) };
+      },
+      step(w, dt, c) {
+        const st = w.state, L = w.laws;
+        if (w.alive) {
+          const dd = 24 * dt; st.day += dd;
+          const K = L.capacity, base = L.fertility * .02;
+          if (st.N > L.sink * K) st.sinkDays += dd;
+          const rEff = base * Math.exp(-st.sinkDays / 320);
+          const mort = st.sinkDays > 0 ? .0025 * (st.sinkDays / 100) : 0;
+          st.N += (rEff * st.N * (1 - st.N / K) - mort * st.N) * dd;
+          st.peak = Math.max(st.peak, st.N);
+          let phase = 'Strive';
+          if (st.N > .25 * K) phase = 'Exploit';
+          if (st.sinkDays > 0 && rEff < base * .45) phase = 'Stagnation';
+          if (st.sinkDays > 0 && st.N < st.peak * .35) phase = 'Die';
+          if (st.N < 1) { st.N = 0; phase = 'Extinct'; w.alive = false; collapsed++; if (w === selected) toast(`${w.name} ended on day ${Math.round(st.day)}`); }
+          if (phase !== st.phase) { st.phase = phase; if (w === selected) status(w); }
+          if (Math.floor(st.day) % 6 === 0 && (st.hist.length === 0 || st.hist[st.hist.length - 1].d !== Math.floor(st.day))) st.hist.push({ d: Math.floor(st.day), n: st.N });
+          if (st.hist.length > 240) st.hist.shift();
+        }
+        const n = Math.min(Math.round(st.N), 420);
+        while (st.dots.length < n) st.dots.push({ x: st.rng(), y: st.rng(), beautiful: st.rng() < .15 });
+        st.dots.length = n;
+
+        // pen
+        const pen = 220, crowd = clamp(st.sinkDays / 600, 0, 1);
+        c.strokeStyle = 'rgba(233,228,210,.2)'; c.lineWidth = 1; c.strokeRect(20, 20, S - 40, pen);
+        st.dots.forEach((d, i) => {
+          const tx = lerp(d.x, .12 + (i % 3) * .04, crowd), ty = lerp(d.y, .82 - (i % 5) * .03, crowd);
+          const x = 22 + tx * (S - 44), y = 22 + ty * (pen - 4);
+          c.beginPath(); c.arc(x, y, 2, 0, 6.29);
+          if (st.phase === 'Stagnation' && d.beautiful) { c.strokeStyle = 'rgba(242,166,90,.9)'; c.stroke(); }
+          else { c.fillStyle = st.phase === 'Extinct' ? 'rgba(217,140,140,.6)' : 'rgba(233,228,210,.85)'; c.fill(); }
+        });
+        // curve
+        const y0 = S - 8, h = 44;
+        c.strokeStyle = 'rgba(242,166,90,.8)'; c.lineWidth = 1.2; c.beginPath();
+        st.hist.forEach((p, i) => { const x = 20 + (i / 240) * (S - 40), y = y0 - (p.n / L.capacity) * h; i ? c.lineTo(x, y) : c.moveTo(x, y); });
+        c.stroke();
+        c.fillStyle = 'rgba(233,228,210,.7)'; c.font = '12px Figtree, sans-serif';
+        c.fillText(`Day ${Math.round(st.day)}`, 20, S - 56); c.textAlign = 'right';
+        c.fillText(`${Math.round(st.N)} mice`, S - 20, S - 56); c.textAlign = 'start';
+      },
+      status: w => ({
+        Strive: 'Phase A. A few settlers in an empty pen.',
+        Exploit: 'Phase B. Growth without limit, for now.',
+        Stagnation: 'Phase C. Crowded past tolerance. The beautiful ones withdraw.',
+        Die: 'Phase D. Births have stopped. Only the count falls.',
+        Extinct: `Ended on day ${Math.round(w.state.day)}. Nothing was outside to kill it.`,
+      })[w.state.phase],
+    },
+
+    rule: {
+      title: 'A rule', color: [127, 183, 190], forkLabel: 'Flip one bit',
+      creed: 'A world is not a place. It is a rule, and this is what happens when the rule runs.',
+      laws: [
+        { key: 'rule', name: 'Rule', min: 0, max: 255, step: 1, from: p => Math.round(30 + (p[0] + 1) * 60 + (p[1] + 1) * 30) % 256, fmt: v => 'Rule ' + Math.round(v), read: v => 'Bits ' + Math.round(v).toString(2).padStart(8, '0') },
+        { key: 'seed', name: 'First moment', min: 0, max: 1, step: .05, from: p => p[2] > 0 ? .5 : 0, fmt: v => v === 0 ? 'one cell' : Math.round(v * 100) + '% filled', read: v => v === 0 ? 'Everything from a single point' : 'Born already busy' },
+      ],
+      init(w) {
+        const rng = mulberry(w.id * 31 + 7), Wd = 100;
+        const row = new Uint8Array(Wd);
+        if (w.laws.seed === 0) row[50] = 1; else for (let i = 0; i < Wd; i++) row[i] = rng() < w.laws.seed ? 1 : 0;
+        w.state = { row, rows: [], acc: 0, gen: 0 };
+      },
+      step(w, dt, c) {
+        const st = w.state, Wd = 100, cell = 3, keep = 100;
+        st.acc += dt;
+        while (st.acc > .045 && w.alive) {
+          st.acc -= .045;
+          const r = Math.round(w.laws.rule) & 255, prev = st.row, next = new Uint8Array(Wd);
+          for (let i = 0; i < Wd; i++) {
+            const k = (prev[(i + Wd - 1) % Wd] << 2) | (prev[i] << 1) | prev[(i + 1) % Wd];
+            next[i] = (r >> k) & 1;
+          }
+          st.rows.push(prev); st.row = next; st.gen++;
+          if (st.rows.length > keep) st.rows.shift();
+        }
+        c.fillStyle = w.alive ? 'rgba(127,183,190,.85)' : 'rgba(217,140,140,.5)';
+        st.rows.forEach((row, y) => { for (let x = 0; x < Wd; x++) if (row[x]) c.fillRect(x * cell, y * cell, cell - .4, cell - .4); });
+        c.fillStyle = 'rgba(233,228,210,.7)'; c.font = '12px Figtree, sans-serif';
+        c.fillText(`Generation ${st.gen}`, 8, S - 10);
+      },
+      status: w => w.alive ? 'Running. Nothing outside the rule can happen here.' : 'Halted. The rule remains; nothing computes it.',
+      mutate(child, parent) { child.laws.rule = Math.round(parent.laws.rule) ^ (1 << Math.floor(Math.random() * 8)); child.laws.seed = parent.laws.seed; },
+    },
+
+    brane: {
+      title: 'A membrane', color: [217, 140, 140], forkLabel: 'Fold in a brane',
+      creed: 'Worlds are sheets adrift in a deeper space. They cannot see each other, but they can touch. A touch is a beginning.',
+      laws: [
+        { key: 'drift', name: 'Drift', min: 0, max: 2.5, step: .1, from: p => 1 + p[0] * .6, fmt: v => v.toFixed(1), read: v => v < .6 ? 'The bulk is still' : v < 1.6 ? 'The bulk breathes' : 'The bulk churns' },
+        { key: 'tension', name: 'Pull between branes', min: -1, max: 1, step: .05, from: p => p[1] * .5, fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2), read: v => v > .15 ? 'Drawn together; collisions come' : v < -.15 ? 'Kept apart; a lonely bulk' : 'Indifferent' },
+        { key: 'count', name: 'Branes in the bulk', min: 2, max: 6, step: 1, from: p => Math.round(3.5 + p[2] * 1.5), fmt: v => Math.round(v), read: v => Math.round(v) + ' sheets, each a universe' },
+      ],
+      init(w) {
+        const rng = mulberry(w.id * 53 + 3);
+        w.state = { branes: [], bangs: 0, flashes: [], rng };
+      },
+      step(w, dt, c) {
+        const st = w.state, L = w.laws, n = Math.round(L.count);
+        while (st.branes.length < n) st.branes.push({ x: 40 + st.rng() * (S - 80), y: 40 + st.rng() * (S - 80), a: st.rng() * 6.28, vx: (st.rng() - .5), vy: (st.rng() - .5), cool: 2, bow: (st.rng() - .5) * 60 });
+        st.branes.length = n;
+        if (w.alive) st.branes.forEach((b, i) => {
+          st.branes.forEach((o, j) => { if (i === j) return; const dx = o.x - b.x, dy = o.y - b.y, d = Math.hypot(dx, dy) + 20; b.vx += L.tension * dx / d * dt * .8; b.vy += L.tension * dy / d * dt * .8; });
+          b.vx += (st.rng() - .5) * dt * L.drift; b.vy += (st.rng() - .5) * dt * L.drift;
+          const sp = Math.hypot(b.vx, b.vy); if (sp > 1.2) { b.vx *= 1.2 / sp; b.vy *= 1.2 / sp; }
+          b.x += b.vx * dt * 40 * L.drift; b.y += b.vy * dt * 40 * L.drift; b.a += dt * .3;
+          if (b.x < 30 || b.x > S - 30) b.vx *= -1; if (b.y < 30 || b.y > S - 30) b.vy *= -1;
+          b.x = clamp(b.x, 30, S - 30); b.y = clamp(b.y, 30, S - 30); b.cool -= dt;
+          for (let j = i + 1; j < n; j++) {
+            const o = st.branes[j];
+            if (b.cool <= 0 && o.cool <= 0 && Math.hypot(o.x - b.x, o.y - b.y) < 26) {
+              b.cool = o.cool = 5; st.bangs++;
+              st.flashes.push({ x: (b.x + o.x) / 2, y: (b.y + o.y) / 2, t: 0 });
+              b.vx *= -1; b.vy *= -1; o.vx *= -1; o.vy *= -1;
+              const born = fork(w, 'constants', true);
+              if (born) toast(`Two branes touched. ${born.name} begins.`);
+              if (w === selected) status(w);
+            }
+          }
+        });
+        st.branes.forEach(b => {
+          const ca = Math.cos(b.a), sa = Math.sin(b.a), L2 = 70;
+          c.strokeStyle = w.alive ? 'rgba(217,140,140,.85)' : 'rgba(217,140,140,.3)'; c.lineWidth = 1.4;
+          c.beginPath(); c.moveTo(b.x - ca * L2, b.y - sa * L2); c.quadraticCurveTo(b.x - sa * b.bow, b.y + ca * b.bow, b.x + ca * L2, b.y + sa * L2); c.stroke();
+        });
+        st.flashes.forEach(f => { f.t += dt; c.strokeStyle = `rgba(242,166,90,${1 - f.t / 1.5})`; c.lineWidth = 1; c.beginPath(); c.arc(f.x, f.y, f.t * 90, 0, 6.29); c.stroke(); });
+        st.flashes = st.flashes.filter(f => f.t < 1.5);
+        c.fillStyle = 'rgba(233,228,210,.7)'; c.font = '12px Figtree, sans-serif';
+        c.fillText(`${st.bangs} big bang${st.bangs === 1 ? '' : 's'} so far`, 8, S - 10);
+      },
+      status: w => w.alive ? (w.state.bangs ? `Each collision has left a new world in the tesseract, a child of this one.` : 'Drifting. Raise the pull to bring branes together.') : 'The bulk is frozen. Nothing can touch.',
+    },
+
+    grid: {
+      title: 'A place on the grid', color: [183, 168, 232], forkLabel: 'Step to a neighbor',
+      creed: 'There is only one universe, and it never ends. Walk far enough and you will meet yourself.',
+      laws: [
+        { key: 'bits', name: 'Ways a region can be', min: 2, max: 16, step: 1, from: p => Math.round(9 + p[0] * 5), fmt: v => '2^' + Math.round(v), read: v => v < 6 ? 'Copies of home are everywhere' : v < 12 ? 'Copies are rare, but certain' : 'Copies exist. Keep walking.' },
+        { key: 'pace', name: 'Walking pace', min: 0, max: 3, step: .1, from: p => 1 + p[1] * .6, fmt: v => v.toFixed(1), read: v => v === 0 ? 'Standing still. Drag the field to walk.' : 'Drifting outward' },
+      ],
+      init(w) { w.state = { ox: 0, oy: 0, found: new Set(), seed: w.id * 7919 + 13 }; },
+      pattern(w, ix, iy) {
+        let h = (ix * 374761393 + iy * 668265263 + w.state.seed) | 0; h = Math.imul(h ^ h >>> 13, 1274126177); h ^= h >>> 16;
+        return (h >>> 0) & ((1 << Math.round(w.laws.bits)) - 1);
+      },
+      step(w, dt, c) {
+        const st = w.state, tile = 20, bits = Math.round(w.laws.bits);
+        if (w.alive) { st.ox += dt * w.laws.pace * 12; st.oy += dt * w.laws.pace * 5; }
+        const home = KINDS.grid.pattern(w, 0, 0);
+        const x0 = Math.floor(st.ox / tile), y0 = Math.floor(st.oy / tile);
+        let visible = 0;
+        for (let gy = -1; gy < S / tile + 1; gy++) for (let gx = -1; gx < S / tile + 1; gx++) {
+          const ix = x0 + gx, iy = y0 + gy, p = KINDS.grid.pattern(w, ix, iy);
+          const px = gx * tile - (st.ox % tile + tile) % tile, py = gy * tile - (st.oy % tile + tile) % tile;
+          const isHome = ix === 0 && iy === 0, match = p === home;
+          c.fillStyle = w.alive ? 'rgba(183,168,232,.75)' : 'rgba(183,168,232,.3)';
+          for (let k = 0; k < 16; k++) if ((p >> (k % bits)) & 1) c.fillRect(px + 3 + (k % 4) * 4, py + 3 + Math.floor(k / 4) * 4, 3, 3);
+          if (match && !isHome) { visible++; st.found.add(ix + ',' + iy); c.strokeStyle = 'rgba(242,166,90,.9)'; c.strokeRect(px + .5, py + .5, tile - 1, tile - 1); }
+          if (isHome) { c.strokeStyle = 'rgba(233,228,210,.9)'; c.lineWidth = 1.5; c.strokeRect(px + .5, py + .5, tile - 1, tile - 1); c.lineWidth = 1; }
+        }
+        c.fillStyle = 'rgba(15,24,48,.85)'; c.fillRect(0, S - 22, S, 22);
+        c.fillStyle = 'rgba(233,228,210,.8)'; c.font = '12px Figtree, sans-serif';
+        c.fillText(`${st.found.size} copies of home met, ${visible} in view`, 8, S - 7);
+      },
+      status: w => `Home is the outlined region. Amber regions are identical to it, down to the last configuration.`,
+      drag(w, dx, dy) { w.state.ox -= dx; w.state.oy -= dy; },
+    },
+
+    mind: {
+      title: 'A mind', color: [168, 214, 150], forkLabel: 'Simulate a child',
+      creed: 'A universe is whatever a mind can hold. Minds hold other minds. There is no reason to think this one is at the top.',
+      laws: [
+        { key: 'fidelity', name: 'Fidelity of its simulations', min: .1, max: 1, step: .05, from: p => .6 + p[0] * .3, fmt: v => Math.round(v * 100) + '%', read: v => v < .4 ? 'Its children are sketches' : v < .8 ? 'Its children are convincing' : 'Its children cannot tell' },
+        { key: 'attention', name: 'Attention', min: .1, max: 2, step: .1, from: p => 1 + p[1] * .5, fmt: v => v.toFixed(1), read: v => v < .6 ? 'Half asleep' : v < 1.4 ? 'Watching' : 'Rapt' },
+      ],
+      init(w) { w.state = { sparks: [], rng: mulberry(w.id * 17 + 5) }; },
+      step(w, dt, c) {
+        const st = w.state, kids = worlds.filter(k => k.parent === w), depth = lineage(w).length - 1;
+        const want = w.alive ? Math.round(30 * w.laws.attention) : 0;
+        while (st.sparks.length < want) st.sparks.push({ x: st.rng() * S, y: st.rng() * S, a: st.rng() * 6.28 });
+        st.sparks.length = want;
+        // this mind
+        const box = (x, y, s, alpha, name) => { c.strokeStyle = `rgba(168,214,150,${alpha})`; c.lineWidth = 1; c.beginPath(); c.roundRect(x, y, s, s, 8); c.stroke(); if (name) { c.fillStyle = `rgba(233,228,210,${alpha})`; c.font = '500 12px Cormorant, Georgia, serif'; c.fillText(name, x + 8, y + 15); } };
+        box(10, 10, S - 20, .9, w.name);
+        st.sparks.forEach(sp => { sp.a += (st.rng() - .5) * .8; sp.x = clamp(sp.x + Math.cos(sp.a) * dt * 40, 14, S - 14); sp.y = clamp(sp.y + Math.sin(sp.a) * dt * 40, 14, S - 14); c.fillStyle = 'rgba(168,214,150,.7)'; c.fillRect(sp.x, sp.y, 2, 2); });
+        // its children, dimmed by fidelity
+        const n = kids.length, cols = Math.ceil(Math.sqrt(n)), size = n ? Math.min(110, (S - 60) / cols - 8) : 0;
+        kids.forEach((k, i) => {
+          const x = 30 + (i % cols) * (size + 8), y = 40 + Math.floor(i / cols) * (size + 8);
+          box(x, y, size, .35 + .55 * w.laws.fidelity * (k.alive ? 1 : .3), k.name);
+          worlds.filter(g => g.parent === k).slice(0, 4).forEach((g, j) => box(x + 10 + (j % 2) * (size / 2 - 8), y + 22 + Math.floor(j / 2) * (size / 2 - 12), size / 2 - 16, .25 * w.laws.fidelity, null));
+        });
+        c.fillStyle = 'rgba(233,228,210,.7)'; c.font = '12px Figtree, sans-serif';
+        c.fillText(depth ? `Depth ${depth}. Simulating ${n} world${n === 1 ? '' : 's'}.` : `Depth 0, or so it believes. Simulating ${n} world${n === 1 ? '' : 's'}.`, 18, S - 16);
+      },
+      status: w => { const anc = lineage(w); return anc.length > 1 ? `Runs inside ${anc[anc.length - 2].name}, at ${Math.round(anc[anc.length - 2].laws.fidelity * 100)}% fidelity.` : 'Runs inside nothing that it can detect.'; },
+      childPos: p => [p[0] + (Math.random() - .5) * .3, p[1] + (Math.random() - .5) * .3, p[2] + (Math.random() - .5) * .3, Math.min(2, p[3] + .35)],
+    },
+
+    constants: {
+      title: 'A set of constants', color: [233, 228, 210], forkLabel: 'Fork this world',
+      creed: 'A world is a handful of numbers. Change one and matter forgets how to behave.',
+      laws: [
+        { key: 'gravity', name: 'Gravity', min: -1, max: 1, step: .05, from: p => clamp(p[0], -1, 1), fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2), read: v => v > 0 ? 'Matter falls together' : 'Matter flies apart' },
+        { key: 'light', name: 'Speed of light', min: -1, max: 1, step: .05, from: p => clamp(p[1], -1, 1), fmt: v => (1 + v).toFixed(2) + ' c', read: v => v > .3 ? 'Fast, bright, cold' : v < -.3 ? 'Slow, dim, patient' : 'Familiar' },
+        { key: 'entropy', name: 'Arrow of time', min: -1, max: 1, step: .05, from: p => clamp(p[2], -1, 1), fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2), read: v => v > 0 ? 'Order decays into chaos' : 'Chaos settles into order' },
+        { key: 'tempo', name: 'Tempo of time', min: -1, max: 1, step: .05, from: p => clamp(p[3], -1, 1), fmt: v => (1 + v).toFixed(2) + ' ×', read: v => v > .3 ? 'A century in a heartbeat' : v < -.3 ? 'A heartbeat takes a century' : 'Time keeps ordinary time' },
+      ],
+      init(w) { w.state = { p: Array.from({ length: 90 }, () => ({ x: S / 2 + (Math.random() - .5) * S * .7, y: S / 2 + (Math.random() - .5) * S * .7, vx: (Math.random() - .5) * .6, vy: (Math.random() - .5) * .6 })) }; },
+      step(w, dt, c) {
+        const L = w.laws, steps = 3 + Math.round(L.tempo * 2), g = L.gravity * .05, cs = 1 + L.light, jit = Math.max(0, L.entropy) * .35, cool = L.entropy < 0 ? 1 + L.entropy * .04 : 1;
+        for (let s = 0; s < steps; s++) w.state.p.forEach(p => {
+          const dx = S / 2 - p.x, dy = S / 2 - p.y, d = Math.hypot(dx, dy) + 8;
+          p.vx += g * dx / d + (Math.random() - .5) * jit; p.vy += g * dy / d + (Math.random() - .5) * jit; p.vx *= cool; p.vy *= cool;
+          const sp = Math.hypot(p.vx, p.vy), mx = 1.4 * cs; if (sp > mx) { p.vx *= mx / sp; p.vy *= mx / sp; }
+          if (w.alive) { p.x += p.vx; p.y += p.vy; }
+          if (p.x < 0 || p.x > S) { p.vx *= -1; p.x = clamp(p.x, 0, S); } if (p.y < 0 || p.y > S) { p.vy *= -1; p.y = clamp(p.y, 0, S); }
+        });
+        c.fillStyle = w.alive ? `rgba(233,228,210,${clamp(.45 + L.light * .35, .15, .9)})` : 'rgba(217,140,140,.5)';
+        w.state.p.forEach(p => { c.beginPath(); c.arc(p.x, p.y, 1.6, 0, 6.29); c.fill(); });
+      },
+      status: w => w.alive ? '' : 'Unmade. Its laws still hold on paper.',
+    },
+  };
+  const KIND_ORDER = ['colony', 'rule', 'brane', 'grid', 'mind', 'constants'];
+
+  // ---------- The worlds ----------
+  const SYL_A = ['Ael', 'Vor', 'Ith', 'Kal', 'Sem', 'Ora', 'Thul', 'Nym', 'Eri', 'Zal', 'Quen', 'Mir', 'Hesh', 'Tal', 'Ubr', 'Yol'];
+  const SYL_B = ['ion', 'ashtor', 'emu', 'vane', 'ora', 'yth', 'ekh', 'ondir', 'ith', 'urne', 'avel', 'os', 'ira', 'enne', 'ath', 'umi'];
+  const worlds = [], edges = [];
+  let selected = null, hover = null, forks = 0, unmade = 0, collapsed = 0;
+
+  const nameFor = (i, parent) => parent ? parent.name.split(' ')[0] + ' ' + SYL_A[i % 16].toLowerCase() + SYL_B[(i * 7 + 3) % 16] : SYL_A[i % 16] + SYL_B[(i * 7 + 3) % 16];
+  const lineage = w => { const out = []; for (let c = w; c; c = c.parent) out.unshift(c); return out; };
+
+  function makeWorld(pos, kindKey, parent) {
+    const kind = KINDS[kindKey], w = { id: worlds.length, name: nameFor(worlds.length, parent), pos, kind: kindKey, laws: {}, alive: true, parent };
+    kind.laws.forEach(l => {
+      let v = l.from(pos);
+      if (parent && parent.kind === kindKey) v = clamp(parent.laws[l.key] + (Math.random() - .5) * (l.max - l.min) * .2, l.min, l.max);
+      w.laws[l.key] = Math.round(v / l.step) * l.step;
+    });
+    if (parent && parent.kind === kindKey && kind.mutate) kind.mutate(w, parent);
+    kind.init(w);
+    worlds.push(w);
+    return w;
+  }
+  function fork(parent, kindKey, quiet) {
+    if (worlds.length >= 64) { if (!quiet) toast('The tesseract holds no more'); return null; }
+    const pk = KINDS[parent.kind];
+    const pos = pk.childPos ? pk.childPos(parent.pos) : parent.pos.map(v => clamp(v + (Math.random() - .5) * .7, -1.6, 1.6));
+    const child = makeWorld(pos, kindKey, parent);
+    edges.push([parent.id, child.id]);
+    forks++;
+    return child;
+  }
+
+  const ASSIGN = ['colony', 'rule', 'brane', 'grid', 'mind', 'constants', 'colony', 'rule', 'brane', 'grid', 'mind', 'constants', 'colony', 'rule', 'brane', 'colony'];
+  for (let i = 0; i < 16; i++) makeWorld([(i & 1) ? 1 : -1, (i & 2) ? 1 : -1, (i & 4) ? 1 : -1, (i & 8) ? 1 : -1], ASSIGN[i]);
+  for (let a = 0; a < 16; a++) for (let b = a + 1; b < 16; b++) { const d = a ^ b; if (d && (d & (d - 1)) === 0) edges.push([a, b]); }
+
+  // ---------- 4D projection ----------
+  const stage = document.getElementById('stage'), ctx = stage.getContext('2d');
+  const rot = { xw: 0, yw: 0, zw: 0, xy: .35, xz: .2 };
+  let gaze = 0, spin = false, drag = null;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function rotPlane(p, i, j, a) { const c = Math.cos(a), s = Math.sin(a), pi = p[i], pj = p[j]; p[i] = pi * c - pj * s; p[j] = pi * s + pj * c; }
+  function project(pos) {
+    const p = pos.slice();
+    rotPlane(p, 0, 3, rot.xw); rotPlane(p, 1, 3, rot.yw); rotPlane(p, 2, 3, rot.zw); rotPlane(p, 0, 1, rot.xy); rotPlane(p, 0, 2, rot.xz);
+    const k4 = 3.2 / (3.2 - p[3]), z = p[2] * k4, k3 = 4.5 / (4.5 - z);
+    return { x: p[0] * k4 * k3, y: p[1] * k4 * k3, depth: z, scale: k4 * k3 };
+  }
+  let W = 0, H = 0, cx = 0, cy = 0, R = 0, screen = [];
+  function resize() {
+    const DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = stage.clientWidth; H = stage.clientHeight; stage.width = W * DPR; stage.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const narrow = W < 900; cx = narrow ? W / 2 : W / 2 + 10; cy = narrow ? H / 2 + 20 : H / 2; R = Math.min(W, H) * (narrow ? .22 : .19);
+  }
+  window.addEventListener('resize', resize); resize();
+
+  const fade = w => 1 - clamp(Math.abs(w.pos[3] - gaze) / 2.2, 0, .85);
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    screen = worlds.map(w => { const p = project(w.pos); return { w, x: cx + p.x * R, y: cy + p.y * R, depth: p.depth, scale: p.scale }; });
+    ctx.lineWidth = 1;
+    edges.forEach(([a, b]) => {
+      const A = screen[a], B = screen[b], al = Math.min(fade(A.w), fade(B.w)) * (A.w.alive && B.w.alive ? .5 : .18);
+      ctx.strokeStyle = `rgba(233,228,210,${al})`; ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+    });
+    [...screen].sort((a, b) => a.depth - b.depth).forEach(s => {
+      const f = fade(s.w), r = (s.w.parent ? 4 : 6) * clamp(s.scale, .5, 1.6), col = KINDS[s.w.kind].color.join(',');
+      if (s.w === selected) { ctx.beginPath(); ctx.arc(s.x, s.y, r + 9, 0, 6.29); ctx.strokeStyle = 'rgba(242,166,90,.9)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, 6.29);
+      if (s.w.alive) { ctx.fillStyle = `rgba(${col},${f})`; ctx.fill(); } else { ctx.strokeStyle = `rgba(${col},${f * .8})`; ctx.lineWidth = 1; ctx.stroke(); }
+      if (s.w === selected || s.w === hover) { ctx.fillStyle = `rgba(233,228,210,${Math.max(f, .8)})`; ctx.font = '500 15px Cormorant, Georgia, serif'; ctx.fillText(s.w.name, s.x + r + 8, s.y + 5); }
+    });
+  }
+
+  const nearest = (x, y) => { let best = null, bd = 484; screen.forEach(s => { const d = (s.x - x) ** 2 + (s.y - y) ** 2; if (d < bd) { bd = d; best = s.w; } }); return best; };
+  const pt = (e, el) => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  stage.addEventListener('pointerdown', e => { const [x, y] = pt(e, stage); drag = { x, y, moved: 0 }; stage.setPointerCapture(e.pointerId); stage.classList.add('dragging'); });
+  stage.addEventListener('pointermove', e => {
+    const [x, y] = pt(e, stage);
+    if (drag) { rot.xw += (x - drag.x) * .006; rot.yw += (y - drag.y) * .006; drag.moved += Math.abs(x - drag.x) + Math.abs(y - drag.y); drag.x = x; drag.y = y; syncSliders(); }
+    else { hover = nearest(x, y); stage.style.cursor = hover ? 'pointer' : 'grab'; }
+  });
+  stage.addEventListener('pointerup', e => { const [x, y] = pt(e, stage); if (drag && drag.moved < 6) { const w = nearest(x, y); if (w) select(w); } drag = null; stage.classList.remove('dragging'); });
+
+  const el = id => document.getElementById(id);
+  const deg = a => Math.round((((a % 6.2832) + 6.2832) % 6.2832) * 180 / Math.PI) + '°';
+  function syncSliders() { ['xw', 'yw', 'zw'].forEach(k => { el('r' + k).value = Math.round((((rot[k] % 6.2832) + 6.2832) % 6.2832) * 100); el('r' + k + '-v').textContent = deg(rot[k]); }); }
+  ['xw', 'yw', 'zw'].forEach(k => el('r' + k).addEventListener('input', e => { rot[k] = e.target.value / 100; el('r' + k + '-v').textContent = deg(rot[k]); }));
+  el('wslice').addEventListener('input', e => { gaze = e.target.value / 100; el('wslice-v').textContent = gaze.toFixed(2); });
+  el('spin').addEventListener('change', e => spin = e.target.checked);
+  if (!reduced) { el('spin').checked = true; spin = true; }
+  el('legend').innerHTML = KIND_ORDER.map(k => `<span><i style="background:rgb(${KINDS[k].color.join(',')})"></i>${KINDS[k].title}</span>`).join('');
+  el('kindsel').innerHTML = KIND_ORDER.map(k => `<option value="${k}">${KINDS[k].title}</option>`).join('');
+
+  // ---------- The ledger ----------
+  function status(w) { el('ustatus').textContent = KINDS[w.kind].status(w) || ''; el('unmake').hidden = !w.alive; el('restore').hidden = w.alive; tally(); }
+  function select(w) {
+    selected = w; const kind = KINDS[w.kind];
+    el('uname').innerHTML = w.parent ? `${w.name} <i>from ${w.parent.name}</i>` : w.name;
+    el('ukind').innerHTML = `<i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgb(${kind.color.join(',')});margin-right:7px;vertical-align:middle"></i>${kind.title}`;
+    el('ucoord').textContent = 'At ' + w.pos.map(v => (v >= 0 ? '+' : '') + v.toFixed(2)).join(', ') + ' along X, Y, Z, W';
+    el('ucreed').textContent = kind.creed;
+    el('fork').textContent = kind.forkLabel;
+    el('kindsel').value = w.kind;
+    const box = el('laws'); box.innerHTML = '';
+    kind.laws.forEach(l => {
+      const d = document.createElement('div'); d.className = 'law';
+      d.innerHTML = `<b>${l.name}</b><span class="val" id="v-${l.key}">${l.fmt(w.laws[l.key])}</span><em id="r-${l.key}">${l.read(w.laws[l.key])}</em><input type="range" min="${l.min}" max="${l.max}" step="${l.step}" value="${w.laws[l.key]}" aria-label="${l.name}">`;
+      d.querySelector('input').addEventListener('input', e => {
+        w.laws[l.key] = +e.target.value; el('v-' + l.key).textContent = l.fmt(w.laws[l.key]); el('r-' + l.key).textContent = l.read(w.laws[l.key]);
+        if (w.kind === 'rule' && l.key === 'seed') kind.init(w);
+      });
+      box.appendChild(d);
+    });
+    status(w);
+  }
+  el('fork').addEventListener('click', () => {
+    if (!selected) return toast('Choose a world first');
+    const child = fork(selected, el('kindsel').value, false);
+    if (child) { select(child); toast(`${child.name} begins`); }
+  });
+  el('unmake').addEventListener('click', () => { if (!selected) return; selected.alive = false; unmade++; status(selected); toast(`${selected.name} is unmade`); });
+  el('restore').addEventListener('click', () => {
+    if (!selected) return; const w = selected; w.alive = true; KINDS[w.kind].init(w); if (w.kind !== 'colony') unmade = Math.max(0, unmade - 1);
+    select(w); toast(`${w.name} begins again`);
+  });
+  function tally() { el('tally').innerHTML = `<b>${worlds.length}</b> worlds in the tesseract, <b>${forks}</b> made since you arrived.<br><b>${unmade}</b> unmade by you, <b>${collapsed}</b> ended on their own.`; }
+  let toastT; function toast(msg) { const t = el('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
+
+  // ---------- The chosen world, running ----------
+  const sim = el('sim'), sctx = sim.getContext('2d');
+  let simDrag = null;
+  sim.addEventListener('pointerdown', e => { if (selected && KINDS[selected.kind].drag) { simDrag = pt(e, sim); sim.setPointerCapture(e.pointerId); } });
+  sim.addEventListener('pointermove', e => { if (!simDrag) return; const p = pt(e, sim), k = S / sim.clientWidth; KINDS[selected.kind].drag(selected, (p[0] - simDrag[0]) * k, (p[1] - simDrag[1]) * k); simDrag = p; });
+  sim.addEventListener('pointerup', () => simDrag = null);
+
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (spin && !drag) { rot.xw += dt * .25; rot.zw += dt * .12; syncSliders(); }
+    // colonies and branes live whether or not you are watching
+    worlds.forEach(w => { if (w !== selected && w.alive && (w.kind === 'colony' || w.kind === 'brane')) KINDS[w.kind].step(w, dt, nullCtx); });
+    draw();
+    sctx.fillStyle = 'rgba(15,24,48,.4)'; sctx.fillRect(0, 0, S, S);
+    if (selected) KINDS[selected.kind].step(selected, dt, sctx);
+    requestAnimationFrame(tick);
+  }
+  const nullCtx = new Proxy({}, { get: () => () => {} , set: () => true });
+  syncSliders(); select(worlds[0]); requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
