@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080e10" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Living Field</title>
+</head>
+<body>
+  <main>
+    <canvas id="c" tabindex="0" aria-label="Living particle organism. Move gently to invite it closer, move quickly to startle it, or hold to share a pulse. Arrow keys move a virtual touch; hold Enter to connect." aria-describedby="instructions"></canvas>
+    <header><div class="identity"><span class="seed"></span> LIVING FIELD <span class="edition">/ 01</span></div><span class="specimen">A study in responsiveness</span></header>
+    <section class="caption" aria-label="Organism behavior"><p class="eyebrow">An encounter, not a command.</p><h1>Something<br>stirs.</h1><p id="instructions">Move softly. Let it come to you.<br>Hold to connect. Give it time to settle.</p></section>
+    <footer>
+      <div class="vitals"><span class="status-dot"></span><span id="state" role="status">Resting</span><span id="state-note">A quiet, independent rhythm</span></div>
+      <div class="actions"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="reset" type="button">Begin again</button></div>
+    </footer>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>
