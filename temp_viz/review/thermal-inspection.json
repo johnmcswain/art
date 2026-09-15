@@ -1,0 +1,85 @@
+{
+  "info": {
+    "relief": 0.263,
+    "month": 0,
+    "W": 1440,
+    "H": 1000,
+    "nTerrain": 224679,
+    "floatRT": true,
+    "di": 3.8,
+    "el": 0.66,
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+  },
+  "axis": [
+    "2024-01",
+    "2024-02",
+    "2024-03",
+    "2024-04",
+    "2024-05",
+    "2024-06",
+    "2024-07",
+    "2024-08",
+    "2024-09",
+    "2024-10",
+    "2024-11",
+    "2024-12",
+    "2025-01",
+    "2025-02",
+    "2025-03",
+    "2025-04",
+    "2025-05",
+    "2025-06",
+    "2025-07",
+    "2025-08",
+    "2025-09",
+    "2025-10",
+    "2025-11",
+    "2025-12",
+    "2026-01",
+    "2026-02",
+    "2026-03",
+    "2026-04",
+    "2026-05",
+    "2026-06",
+    "2026-07",
+    "2026-08"
+  ],
+  "domain": [
+    -25,
+    110
+  ],
+  "field": {
+    "min": 0.163,
+    "max": 0.763,
+    "mean": 0.456,
+    "minF": -3.1,
+    "maxF": 78
+  },
+  "sun": {
+    "alt": 30.6,
+    "warm": 0.07,
+    "dir": [
+      -0.45,
+      0.509,
+      -0.734
+    ]
+  },
+  "state": "m=0.00&v=-0.130,0.660,1.000,-0.015,0.014",
+  "body": "THERMAL ATLAS\n\n159 weather stations, monthly means of daily temperature. Terrain height and colour both encode temperature — drag to orbit, scrub the timeline below.\n\nTHROUGH 21 AUG 2026\n\nSURFACE\nJAN 2024\nMove the pointer over the map for a reading.\nMEAN DAILY TEMPERATURE · °F\n0°\n20°\n40°\n60°\n80°\n100°\nTHERMAL\nICE ⇄ FIRE\nVIRIDIS\nCIVIDIS\nABYSS\n2024\n2025\n2026\nJANUARY\n2024\n°F\n°C\nFLAT\nLINK\nDATA\n?\nSTATION DATA\n×",
+  "mobile": {
+    "scroll": 390,
+    "width": 390,
+    "info": {
+      "relief": 0.44,
+      "month": 6,
+      "W": 780,
+      "H": 1688,
+      "nTerrain": 224679,
+      "floatRT": true,
+      "di": 11.65,
+      "el": 0.66,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  "errors": []
+}
